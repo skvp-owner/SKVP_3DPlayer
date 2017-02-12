@@ -1,0 +1,3 @@
+[submodule "SKVP_Reader"]
+	path = SKVP_Reader
+	url = https://github.com/skvp-owner/SKVP_Reader.git
