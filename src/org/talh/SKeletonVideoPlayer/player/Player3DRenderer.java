@@ -1,6 +1,5 @@
 package org.talh.SKeletonVideoPlayer.player;
 
-import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,16 +8,15 @@ import org.talh.SKeletonVideoPlayer.ElementColor;
 import org.talh.SKeletonVideoPlayer.graph.GraphVertex;
 import org.talh.SKeletonVideoPlayer.graph.Rendered3DGraph;
 
-import javafx.event.EventHandler;
 import javafx.geometry.Point3D;
+import javafx.scene.Camera;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.SubScene;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Cylinder;
 import javafx.scene.shape.Sphere;
@@ -33,26 +31,28 @@ public class Player3DRenderer extends HBox {
 	private Group graphicsContainer;
 	private SubScene subscene;
 	private Scene parentScene;
-	private double cameraTranslateX;
-	private double cameraTranslateY;
-	private double cameraTranslateZ;
-	private double cameraRotateX;
-	private double cameraRotateY;
-	private double cameraRotateZ;
+	private double cameraLocationX;
+	private double cameraLocationY;
+	private double cameraLocationZ;
+	private double cameraDestinationX;
+	private double cameraDestinationY;
+	private double cameraDestinationZ;
 	Sphere[] spheres = null;
 	Cylinder[] cylinders = null;
 
-	private PerspectiveCamera camera;
+	private Camera camera;
 
-	public Player3DRenderer(Stage stage, double cameraX, double cameraY, double cameraZ,
-										double cameraAngleX, double cameraAngleY, double cameraAngleZ) {
+	private Sphere[] watchingLineSpheres = null;
+
+	public Player3DRenderer(Stage stage, double cameraLocationX, double cameraLocationY, double cameraLocationZ,
+										double cameraDestinationX, double cameraDestinationY, double cameraDestinationZ) {
 		parentScene = stage.getScene();
-		cameraTranslateX = cameraX;
-		cameraTranslateY = cameraY;
-		cameraTranslateX = cameraZ;
-		cameraRotateX = cameraAngleX;
-		cameraRotateY = cameraAngleY;
-		cameraRotateZ = cameraAngleZ;
+		this.cameraLocationX = cameraLocationX;
+		this.cameraLocationY = (-1) * cameraLocationY;
+		this.cameraLocationX = cameraLocationZ;
+		this.cameraDestinationX = cameraDestinationX;
+		this.cameraDestinationY = (-1) * cameraDestinationY;
+		this.cameraDestinationZ = cameraDestinationZ;
 		this.setStyle("-fx-padding: 10;" + 
                 "-fx-border-style: solid inside;" + 
                 "-fx-border-width: 2;" +
@@ -71,8 +71,9 @@ public class Player3DRenderer extends HBox {
 	
 	private void setupEvents() {
 		//graphicsContainer.add	
-		parentScene.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
+		/*parentScene.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
 
+			
 			@Override
 			public void handle(KeyEvent arg0) {
 				if (arg0.getCode() == KeyCode.D) {
@@ -99,12 +100,12 @@ public class Player3DRenderer extends HBox {
 				}
 				if (arg0.getCode() == KeyCode.Z) {
 					double cameraNewRotateY = cameraRotateY - 2.0;
-					changeCameraAngle(cameraRotateX, cameraNewRotateY, cameraRotateZ);
+					changeCameraDestination(cameraRotateX, cameraNewRotateY, cameraRotateZ);
 					System.out.println("m");
 				}
 				if (arg0.getCode() == KeyCode.X) {
 					double cameraNewRotateY = cameraRotateY + 2.0;
-					changeCameraAngle(cameraRotateX, cameraNewRotateY, cameraRotateZ);
+					changeCameraDestination(cameraRotateX, cameraNewRotateY, cameraRotateZ);
 					System.out.println("m");
 				}
 				System.out.println(MessageFormat.format("Rotation: ({0},{1},{2})", cameraRotateX, cameraRotateY, cameraRotateZ));
@@ -112,9 +113,9 @@ public class Player3DRenderer extends HBox {
 				
 			}
 			
-		});
+		});*/
 	}
-
+/*
 	protected void translateRightOrLeft(double rotateY, boolean left) {
 		double angle = (rotateY - (int)rotateY) + (int)rotateY % 90;
 		int quarter = (int)rotateY / 90;
@@ -145,27 +146,126 @@ public class Player3DRenderer extends HBox {
 				return;
 		}
 		changeCameraLocation(newTranslateX, cameraTranslateY, newTranslateZ);
-	}
-
+	}*/
+/*
 	public void clearGraphics() {
 		graphicsContainer.getChildren().clear();
 		//System.gc();
 		setupCamera();
 	}
-	
+	*/
 	private void setupCamera() {
 		// TODO Auto-generated method stub
-		if (camera == null) {
+	//	if (camera == null) {
+		camera = new PerspectiveCamera(true);
+		graphicsContainer.getChildren().add(camera);
+		subscene.setCamera(camera);
+	//	}
+		camera.getTransforms().clear();
+		Point3D cameraDest = new Point3D(cameraDestinationX, cameraDestinationY, cameraDestinationZ);
+		Point3D cameraOrig = new Point3D(cameraLocationX, cameraLocationY, cameraLocationZ);
+		Point3D lookingVector = cameraDest.subtract(cameraOrig);
+		Point3D lookingVectorProjOnXZ = new Point3D(lookingVector.getX(), 0, lookingVector.getZ());
+		Point3D zAxis = new Point3D(0, 0, 1);
+		// The denominator is 1 as first vector is normalized and Z axis is already a unit vector
+		double angleWithZAxis = Math.acos(lookingVectorProjOnXZ.normalize().dotProduct(zAxis));
+		if (cameraDestinationX - cameraLocationX > 0) {
+			// We're on the other side of the Z axis. Need to rotate in opposite direction
+			angleWithZAxis *= (-1);
+		}
+		System.out.println("angle with z: " + angleWithZAxis);
+		Rotate rotationAroundY = new Rotate(-Math.toDegrees(angleWithZAxis), new Point3D(0, 1, 0));
+		double angleBetweenLookingVecAndItsProjectionOnXZ = Math.acos(lookingVector.normalize().dotProduct(lookingVectorProjOnXZ.normalize()));
+		if (cameraDestinationZ - cameraLocationZ < 0) {
+			angleBetweenLookingVecAndItsProjectionOnXZ *= (-1);
+		}
+		System.out.println("looking vector: " + lookingVector);
+		System.out.println("looking vector projected: " + lookingVectorProjOnXZ);
+		System.out.println("angle with XZ: " + angleBetweenLookingVecAndItsProjectionOnXZ);
+		Point3D rotationAxis = lookingVectorProjOnXZ.crossProduct(lookingVector);
+		Rotate rotationForAngleWithProjectionOnXZ = new Rotate(Math.toDegrees(angleBetweenLookingVecAndItsProjectionOnXZ), rotationAxis);
+		
+		Translate moveToCameraLocation = new Translate(cameraLocationX, cameraLocationY, cameraLocationZ);
+		
+		camera.getTransforms().addAll(moveToCameraLocation, rotationAroundY, rotationForAngleWithProjectionOnXZ);
+		
+		
+		// *** Uncomment it to debug watching engine ***		
+		paintWatchingLine();
+	}
+	
+	private void paintWatchingLine() {
+		Point3D cameraDest = new Point3D(cameraDestinationX, cameraDestinationY, cameraDestinationZ);
+		Point3D cameraOrig = new Point3D(cameraLocationX, cameraLocationY, cameraLocationZ);
+		// Painting 10  0.1 radiused spheres every 1 units
+		Point3D lookingUnitVector = cameraDest.subtract(cameraOrig).normalize();
+		
+		if (watchingLineSpheres == null) {
+			watchingLineSpheres = new Sphere[10];
+		}
+		for (int i = 0 ; i < 10 ; i++) {
+			Point3D sphereLocation = cameraOrig.add(lookingUnitVector.multiply(1 + i));
+			System.out.println("sphere location: " + sphereLocation);
+			if (watchingLineSpheres[i] == null) {
+				watchingLineSpheres[i] = new Sphere(0.1);
+				PhongMaterial material = new PhongMaterial();
+				material.setDiffuseColor(Color.BLACK);
+				material.setSpecularColor(Color.BLACK);
+				watchingLineSpheres[i].setMaterial(material);
+				graphicsContainer.getChildren().add(watchingLineSpheres[i]);
+			}			
+			watchingLineSpheres[i].setTranslateX(sphereLocation.getX());
+			watchingLineSpheres[i].setTranslateY(sphereLocation.getY());
+			watchingLineSpheres[i].setTranslateZ(sphereLocation.getZ());
+		}
+	}
+
+	private void setupCameraOld() {
+		// TODO Auto-generated method stub
+	//	if (camera == null) {
 			camera = new PerspectiveCamera(true);
 			graphicsContainer.getChildren().add(camera);
 			subscene.setCamera(camera);
-		}
+	//	}
+		camera.getTransforms().clear();
+		
+		Point3D zAxis = new Point3D(0, 0, 1);
+		Point3D cameraDest = new Point3D(cameraDestinationX, cameraDestinationY, cameraDestinationZ);
+		Point3D cameraOrig = new Point3D(cameraLocationX, cameraLocationY, cameraLocationZ);
+	    Point3D diff = cameraDest.subtract(cameraOrig);
+	    System.out.println("kuku: " + diff);
+	    Point3D axisOfRotation = diff.crossProduct(zAxis);
+	    double angle = Math.acos(diff.normalize().dotProduct(zAxis));
+	    System.out.println("rot axis: " + axisOfRotation);
+	    System.out.println("angle: " + angle);
+	    
+	    
+	    Rotate rotateAroundCenter = new Rotate(-Math.toDegrees(angle), axisOfRotation);
+	    Translate moveCameraToDesiredLocation = new Translate(cameraLocationX, cameraLocationY, cameraLocationZ);
+	    camera.getTransforms().add(rotateAroundCenter);
+	    camera.getTransforms().add(moveCameraToDesiredLocation);
+	    if (cameraLocationZ > cameraDestinationZ) {
+	    	Point3D yAxis = new Point3D(0, 1, 0);
+	    	Rotate rotateCamera180 = new Rotate(180, yAxis);
+	    	camera.getTransforms().add(rotateCamera180);
+	    }
+	    //camera.getTransforms().addAll(moveCameraToDesiredLocation, rotateAroundCenter);
+	    //camera.setTranslateX(cameraLocationX);
+	    //camera.setTranslateY(cameraLocationY);
+	    //camera.setTranslateZ(cameraLocationZ);
+	    //camera.setNearClip(0.1);
+		//camera.setFarClip(2000.0);
+		//camera.setFieldOfView(135);
+		
+		
+	
+		/*
 		//camera.setTranslateZ(-200);
 		//camera.setTranslateY(-250);
 		//camera.setTranslateX(450);
-		/*camera.getTransforms().addAll(new Rotate(cameraRotateZ, Rotate.Z_AXIS),
+		camera.getTransforms().addAll(new Rotate(cameraRotateZ, Rotate.Z_AXIS),
 									new Rotate(cameraRotateX, Rotate.X_AXIS),
-									new Rotate(cameraRotateY, Rotate.Y_AXIS));*/
+									new Rotate(cameraRotateY, Rotate.Y_AXIS));
 		Translate moveToCameraLocation = new Translate(cameraTranslateX, -1 * cameraTranslateY, cameraTranslateZ);
 		//camera.setTranslateZ(cameraTranslateZ);
 		//camera.setTranslateY(-1 * cameraTranslateY);
@@ -176,19 +276,16 @@ public class Player3DRenderer extends HBox {
 		camera.setFarClip(2000.0);
 		camera.setFieldOfView(135);
 		
-		
+	*/	
 	}
 	
 	public void changeCameraLocation(double x, double y, double z) {
-		this.cameraTranslateX = x;
-		this.cameraTranslateY = y;
-		this.cameraTranslateZ = z;
+		this.cameraLocationX = x;
+		this.cameraLocationY = -y;
+		this.cameraLocationZ = z;
 		setupCamera();
 	}
 
-	public void kpaintSkeletonFrame(Rendered3DGraph graph) {
-		
-	}
 	
 	public synchronized void paintSkeletonFrame(Rendered3DGraph graph) {
 		//clearGraphics();
@@ -299,18 +396,18 @@ public class Player3DRenderer extends HBox {
 	    return line;
 	}
 
-	public void changeCameraAngle(Double x, Double y, Double z) {
-		cameraRotateX = convertTo360Degrees(x);
-		cameraRotateY = convertTo360Degrees(y);
-		cameraRotateZ = convertTo360Degrees(z);
+	public void changeCameraDestination(Double x, Double y, Double z) {
+		cameraDestinationX = x;
+		cameraDestinationY = -y;
+		cameraDestinationZ = z;
 		setupCamera();		
 	}
-	
+	/*
 	private double convertTo360Degrees(double angle) {
 		while (angle < 0) {
 			angle = 360 + angle; 
 		}
 		return (angle - (int)angle) + (int)angle % 360;
-	}
+	}*/
 
 }

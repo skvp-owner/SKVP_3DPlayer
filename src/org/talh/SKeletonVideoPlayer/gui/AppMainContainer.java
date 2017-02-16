@@ -52,16 +52,11 @@ public class AppMainContainer extends Application {
 	private HBox controlsPane;
 
 	private Spinner<Double> spinnerCameraX;
-
 	private Spinner<Double> spinnerCameraY;
-
 	private Spinner<Double> spinnerCameraZ;
-
-	private Spinner<Double> spinnerCameraAngleX;
-
-	private Spinner<Double> spinnerCameraAngleY;
-
-	private Spinner<Double> spinnerCameraAngleZ;
+	private Spinner<Double> spinnerCameraDestinationX;
+	private Spinner<Double> spinnerCameraDestinationY;
+	private Spinner<Double> spinnerCameraDestinationZ;
 	
 	@Override
 	public void start(Stage stage) throws Exception {
@@ -90,9 +85,9 @@ public class AppMainContainer extends Application {
 		//HBox angleControls = new HBox(8);
 		//cameraControls.getChildren().addAll(locationControls, angleControls);
 		GridPane cameraControls = new GridPane();
-		spinnerCameraX = new Spinner<Double>(-999999999.0, 999999999.0, 0.0, 0.1);
-		spinnerCameraY = new Spinner<Double>(-999999999.0, 999999999.0, 0.0, 0.1);
-		spinnerCameraZ = new Spinner<Double>(-999999999.0, 999999999.0, 0.0, 0.1);
+		spinnerCameraX = new Spinner<Double>(-999999999.0, 999999999.0, 0.0);
+		spinnerCameraY = new Spinner<Double>(-999999999.0, 999999999.0, 0.0);
+		spinnerCameraZ = new Spinner<Double>(-999999999.0, 999999999.0, 0.0);
 	//	spinnerCameraX.setEditable(true);
 	//	spinnerCameraY.setEditable(true);
 	//	spinnerCameraZ.setEditable(true);
@@ -100,9 +95,9 @@ public class AppMainContainer extends Application {
 			//								new Label("Y:"), spinnerCameraY,
 			//								new Label("Z:"), spinnerCameraZ);
 		
-		spinnerCameraAngleX = new Spinner<Double>(-180.0, 180.0, 0.0, 5.0);
-		spinnerCameraAngleY = new Spinner<Double>(-180.0, 180.0, 0.0, 5.0);
-		spinnerCameraAngleZ = new Spinner<Double>(-180.0, 180.0, 0.0, 5.0);
+		spinnerCameraDestinationX = new Spinner<Double>(-999999999.0, 999999999.0, 0);  //(-180.0, 180.0, 0.0, 5.0);
+		spinnerCameraDestinationY = new Spinner<Double>(-999999999.0, 999999999.0, 0);
+		spinnerCameraDestinationZ = new Spinner<Double>(-999999999.0, 999999999.0, 0);
 	//	spinnerCameraAngleX.setEditable(true);
 	//	spinnerCameraAngleY.setEditable(true);
 	//	spinnerCameraAngleZ.setEditable(true);
@@ -118,12 +113,12 @@ public class AppMainContainer extends Application {
 		cameraControls.add(new Label("    "), 6, 1);
 		cameraControls.add(new Label("Location Z:"), 7, 1);
 		cameraControls.add(spinnerCameraZ, 8, 1);
-		cameraControls.add(new Label("Rotation X:"), 1, 2);
-		cameraControls.add(spinnerCameraAngleX, 2, 2);
-		cameraControls.add(new Label("Rotation Y:"), 4, 2);
-		cameraControls.add(spinnerCameraAngleY, 5, 2);
-		cameraControls.add(new Label("Rotation Z:"), 7, 2);
-		cameraControls.add(spinnerCameraAngleZ, 8, 2);
+		cameraControls.add(new Label("Destination X:"), 1, 2);
+		cameraControls.add(spinnerCameraDestinationX, 2, 2);
+		cameraControls.add(new Label("Destination Y:"), 4, 2);
+		cameraControls.add(spinnerCameraDestinationY, 5, 2);
+		cameraControls.add(new Label("Destination Z:"), 7, 2);
+		cameraControls.add(spinnerCameraDestinationZ, 8, 2);
 		
 		
 		
@@ -186,18 +181,18 @@ public class AppMainContainer extends Application {
 		spinnerCameraX.valueProperty().addListener(cameraSpinnersChangeListener);
 		spinnerCameraY.valueProperty().addListener(cameraSpinnersChangeListener);
 		spinnerCameraZ.valueProperty().addListener(cameraSpinnersChangeListener);
-		ChangeListener<Double> cameraAngleSpinnersChangeListener = new ChangeListener<Double>() {
+		ChangeListener<Double> cameraDestinationSpinnersChangeListener = new ChangeListener<Double>() {
 			@Override
 			public void changed(ObservableValue<? extends Double> observable, Double oldValue, Double newValue) {
-				playerRenderer.changeCameraAngle(spinnerCameraAngleX.getValue(), 
-						spinnerCameraAngleY.getValue(),
-						spinnerCameraAngleZ.getValue());	
+				playerRenderer.changeCameraDestination(spinnerCameraDestinationX.getValue(), 
+						spinnerCameraDestinationY.getValue(),
+						spinnerCameraDestinationZ.getValue());	
 				
 			}			
 		};
-		spinnerCameraAngleX.valueProperty().addListener(cameraAngleSpinnersChangeListener);
-		spinnerCameraAngleY.valueProperty().addListener(cameraAngleSpinnersChangeListener);
-		spinnerCameraAngleZ.valueProperty().addListener(cameraAngleSpinnersChangeListener);
+		spinnerCameraDestinationX.valueProperty().addListener(cameraDestinationSpinnersChangeListener);
+		spinnerCameraDestinationY.valueProperty().addListener(cameraDestinationSpinnersChangeListener);
+		spinnerCameraDestinationZ.valueProperty().addListener(cameraDestinationSpinnersChangeListener);
 	}
 
 	private void chooseAndOpenVideoFile() {
@@ -218,7 +213,7 @@ public class AppMainContainer extends Application {
 	private void loadFile(File file) {
 		try {
 			playerBackend.loadFile(file, spinnerCameraX, spinnerCameraY, spinnerCameraZ,
-									spinnerCameraAngleX, spinnerCameraAngleY, spinnerCameraAngleZ);
+									spinnerCameraDestinationX, spinnerCameraDestinationY, spinnerCameraDestinationZ);
 		} catch (SKVPSyntaxErrorException e) {
 			showErrorDialog("Error loading selected file...", "Loaded file has syntax errors", e.getMessage());
 		} catch (IOException e) {

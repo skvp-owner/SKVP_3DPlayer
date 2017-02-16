@@ -22,7 +22,7 @@ public class PlayerBackend {
 	private Semaphore playSemaphore = new Semaphore(1, true);
 	private PlayerState playerState = PlayerState.STOPPED;
 	Coordinate3D cameraLocation;
-	Coordinate3D cameraRotation;
+	Coordinate3D cameraDestination;
 		
 	
 	public void clear() {
@@ -33,13 +33,13 @@ public class PlayerBackend {
 		playerBuffer = null;
 	}
 	
-	public void loadFile(File file, Spinner<Double> spinnerCameraX, Spinner<Double> spinnerCameraY, Spinner<Double> spinnerCameraZ, Spinner<Double> spinnerCameraAngleX, Spinner<Double> spinnerCameraAngleY, Spinner<Double> spinnerCameraAngleZ) throws SKVPSyntaxErrorException, IOException, SKVPIllegalValueException {
+	public void loadFile(File file, Spinner<Double> spinnerCameraX, Spinner<Double> spinnerCameraY, Spinner<Double> spinnerCameraZ, Spinner<Double> spinnerCameraDestinationX, Spinner<Double> spinnerCameraDestinationY, Spinner<Double> spinnerCameraDestinationZ) throws SKVPSyntaxErrorException, IOException, SKVPIllegalValueException {
 		clear();
 		SKVPReader reader = new SKVPReader(file);
 		try {
 			fps = reader.getFps();
 			cameraLocation = reader.getCameraLocation();
-			cameraRotation = reader.getCameraRotation();
+			cameraDestination = reader.getCameraDestination();
 		} catch (SKVPNonInitializedReaderException e) {
 			// Don't care - it is initialized (see c'tor)
 			e.printStackTrace();
@@ -47,9 +47,9 @@ public class PlayerBackend {
 		spinnerCameraX.getValueFactory().setValue(cameraLocation.getX());
 		spinnerCameraY.getValueFactory().setValue(cameraLocation.getY());
 		spinnerCameraZ.getValueFactory().setValue(cameraLocation.getZ());
-		spinnerCameraAngleX.getValueFactory().setValue(cameraRotation.getX());
-		spinnerCameraAngleY.getValueFactory().setValue(cameraRotation.getY());
-		spinnerCameraAngleZ.getValueFactory().setValue(cameraRotation.getZ());
+		spinnerCameraDestinationX.getValueFactory().setValue(cameraDestination.getX());
+		spinnerCameraDestinationY.getValueFactory().setValue(cameraDestination.getY());
+		spinnerCameraDestinationZ.getValueFactory().setValue(cameraDestination.getZ());
 		playerBuffer = new PlayerBuffer(reader);		
 	}
 	

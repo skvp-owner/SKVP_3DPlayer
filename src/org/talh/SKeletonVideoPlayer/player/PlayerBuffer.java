@@ -18,7 +18,6 @@ public class PlayerBuffer {
 	private Semaphore bufferAccess;
 	private Semaphore firstBufferFilling;
 	private Thread bufferFiller;
-	private int numFramesRead;
 	private boolean bufferingStarted;
 	private boolean dismissed = false;
 	//private SKVPReader reader;
@@ -30,7 +29,6 @@ public class PlayerBuffer {
 		//this.reader = reader;
 		this.bufferAccess = new Semaphore(1, true);
 		this.firstBufferFilling = new Semaphore(1, true);
-		this.numFramesRead = 0;
 		this.bufferingStarted = false;
 		
 		this.bufferFiller = new Thread() {
@@ -84,7 +82,6 @@ public class PlayerBuffer {
 			bufferAccess.release();
 		}
 		
-		this.numFramesRead += 1;
 		
 		System.out.println(this.buffer.size());
 		// It returns null when the queue is empty, which is exactly what we want to happen
