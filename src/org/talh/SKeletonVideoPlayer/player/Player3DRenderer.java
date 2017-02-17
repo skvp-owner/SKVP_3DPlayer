@@ -154,7 +154,65 @@ public class Player3DRenderer extends HBox {
 		setupCamera();
 	}
 	*/
+	
 	private void setupCamera() {
+		
+		camera = new PerspectiveCamera(true);
+		graphicsContainer.getChildren().add(camera);
+		subscene.setCamera(camera);
+	//	}
+		camera.getTransforms().clear();
+		Point3D cameraDest = new Point3D(cameraDestinationX, cameraDestinationY, cameraDestinationZ);
+		Point3D cameraOrig = new Point3D(cameraLocationX, cameraLocationY, cameraLocationZ);
+		Point3D lookingVector = cameraDest.subtract(cameraOrig);
+	/*	if (lookingVector.getZ() < 0) {
+			Point3D yAxis = new Point3D(0, 1, 0);
+			Rotate fixRot = new Rotate(180, yAxis);
+			camera.getTransforms().add(fixRot);
+		}*/
+		Point3D cameraOrigDirection = new Point3D(0, 0, 1); // This is actually the Z axis
+		double angle = Math.toDegrees(Math.acos(lookingVector.normalize().dotProduct(cameraOrigDirection)));
+		Point3D rotAxis = cameraOrigDirection.crossProduct(lookingVector);
+		System.out.println("ANGLE: " + angle);
+		System.out.println("looking vector: " + lookingVector);
+		if (lookingVector.getX() == 0 && lookingVector.getY() == 0 && lookingVector.getZ() < 0) {
+			// Case when "looking vector" is parallel to Z axis
+			// but is in the other trend, i.e. Z value is negative.
+			rotAxis = new Point3D(0, 1, 0);
+		} else if (lookingVector.getZ() < 0) {
+			// Rotating camera around itself, as move to other side is going to flip it
+			
+		}
+		System.out.println("angle: " + angle);
+		Rotate rotate = new Rotate(angle, rotAxis);
+		Translate moveToCameraLocation = new Translate(cameraLocationX, cameraLocationY, cameraLocationZ);
+		camera.getTransforms().add(moveToCameraLocation);
+		/*
+			// flipping camera around Y axis so it looks at the correct place
+			Point3D yAxis = new Point3D(0, 1, 0);
+			Rotate fixRot = new Rotate(180, yAxis);
+			camera.getTransforms().add(fixRot);
+		}*/
+		
+		if (lookingVector.getZ() < 0 && (lookingVector.getX() != 0 || lookingVector.getY() != 0)) {
+			Point3D selfFlipAxis = lookingVector;
+			Rotate selfFlipFix = new Rotate(180, selfFlipAxis);
+			camera.getTransforms().add(selfFlipFix);
+		}
+		camera.getTransforms().add(rotate);
+		//camera.getTransforms().addAll(moveToCameraLocation, rotate);
+		/*if (lookingVector.getZ() < 0) {
+			Point3D aroundSelfRotationAxis = lookingVector.crossProduct(new Point3D(1, 0, 0));
+			Rotate fixView = new Rotate(180, aroundSelfRotationAxis);
+			camera.getTransforms().add(fixView);
+		}*/
+		
+		
+		//*** Uncomment it to debug watching engine ***		
+		paintWatchingLine();
+	}
+	
+	private void setupCameraOld2() {
 		// TODO Auto-generated method stub
 	//	if (camera == null) {
 		camera = new PerspectiveCamera(true);
@@ -207,7 +265,7 @@ public class Player3DRenderer extends HBox {
 			Point3D sphereLocation = cameraOrig.add(lookingUnitVector.multiply(1 + i));
 			System.out.println("sphere location: " + sphereLocation);
 			if (watchingLineSpheres[i] == null) {
-				watchingLineSpheres[i] = new Sphere(0.1);
+				watchingLineSpheres[i] = new Sphere(0.01);
 				PhongMaterial material = new PhongMaterial();
 				material.setDiffuseColor(Color.BLACK);
 				material.setSpecularColor(Color.BLACK);
