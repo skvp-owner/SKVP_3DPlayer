@@ -37,6 +37,7 @@ public class Player3DRenderer extends HBox {
 	private double cameraDestinationX;
 	private double cameraDestinationY;
 	private double cameraDestinationZ;
+	private double cameraSceneRotation;
 	Sphere[] spheres = null;
 	Cylinder[] cylinders = null;
 
@@ -45,7 +46,7 @@ public class Player3DRenderer extends HBox {
 	private Sphere[] watchingLineSpheres = null;
 
 	public Player3DRenderer(Stage stage, double cameraLocationX, double cameraLocationY, double cameraLocationZ,
-										double cameraDestinationX, double cameraDestinationY, double cameraDestinationZ) {
+										double cameraDestinationX, double cameraDestinationY, double cameraDestinationZ, double cameraSceneRotation) {
 		parentScene = stage.getScene();
 		this.cameraLocationX = cameraLocationX;
 		this.cameraLocationY = (-1) * cameraLocationY;
@@ -53,6 +54,7 @@ public class Player3DRenderer extends HBox {
 		this.cameraDestinationX = cameraDestinationX;
 		this.cameraDestinationY = (-1) * cameraDestinationY;
 		this.cameraDestinationZ = cameraDestinationZ;
+		this.cameraSceneRotation = cameraSceneRotation;
 		this.setStyle("-fx-padding: 10;" + 
                 "-fx-border-style: solid inside;" + 
                 "-fx-border-width: 2;" +
@@ -156,101 +158,65 @@ public class Player3DRenderer extends HBox {
 	*/
 	
 	private void setupCamera() {
-		
+		/*
+		 * What we do here
+		 * ---------------
+		 * It seems that the transformation occur in the opposite direction of their insertion order.
+		 * So explaining the transformations from the end of the list to the starting of the list, according
+		 * to their logical order:
+		 * 
+		 * 1. *Only* if the Z value of the looking vector is negative, flip the camera 180 degrees around 
+		 *    the Y axis. Moving the camera from (0,0,1) to such a looking vector is much more complex than
+		 *    moving it from (0,0,-1). From now on, "camera original direction" is (0,0,-1) instead of (0,0,1)
+		 *    
+		 * 2. Find the angle between the camera original direction to the "looking vector". Also find the rotation
+		 *    axis, which is of course the normal to the plane of these two vectors and is the result of their
+		 *    cross-product. If the two vectors are parallel, i.e. the looking vector's X and Y are both 0, 
+		 *    then the rotation axis should be set manually as the Y axis (0,1,0), because cross product returns
+		 *    the 0 vector for parallel vectors, which can't be used for rotation. Then, rotate the camera the 
+		 *    found angle around the found rotation vector.
+		 *    
+		 * 3. Rotate the camera the user specified "scene rotation" angle. This rotation is done around the
+		 *    "looking vector", as the scene itself should look like it was rotated
+		 *    
+		 * 4. Translate the camera to its desired location
+		 * 
+		 */
+				
 		camera = new PerspectiveCamera(true);
 		graphicsContainer.getChildren().add(camera);
 		subscene.setCamera(camera);
-	//	}
+		camera.setNearClip(0.1);
+		camera.setFarClip(2000.0);
 		camera.getTransforms().clear();
+		Translate moveToCameraLocation = new Translate(cameraLocationX, cameraLocationY, cameraLocationZ);
+		camera.getTransforms().add(moveToCameraLocation);
 		Point3D cameraDest = new Point3D(cameraDestinationX, cameraDestinationY, cameraDestinationZ);
 		Point3D cameraOrig = new Point3D(cameraLocationX, cameraLocationY, cameraLocationZ);
 		Point3D lookingVector = cameraDest.subtract(cameraOrig);
-	/*	if (lookingVector.getZ() < 0) {
-			Point3D yAxis = new Point3D(0, 1, 0);
-			Rotate fixRot = new Rotate(180, yAxis);
-			camera.getTransforms().add(fixRot);
-		}*/
-		Point3D cameraOrigDirection = new Point3D(0, 0, 1); // This is actually the Z axis
+		Rotate sceneRotation = new Rotate(cameraSceneRotation, lookingVector);
+		camera.getTransforms().add(sceneRotation);
+		Point3D cameraOrigDirection = new Point3D(0, 0, 1);
+		if (lookingVector.getZ() < 0) {
+			cameraOrigDirection = new Point3D(0, 0, -1);
+		}
 		double angle = Math.toDegrees(Math.acos(lookingVector.normalize().dotProduct(cameraOrigDirection)));
 		Point3D rotAxis = cameraOrigDirection.crossProduct(lookingVector);
-		System.out.println("ANGLE: " + angle);
-		System.out.println("looking vector: " + lookingVector);
-		if (lookingVector.getX() == 0 && lookingVector.getY() == 0 && lookingVector.getZ() < 0) {
-			// Case when "looking vector" is parallel to Z axis
-			// but is in the other trend, i.e. Z value is negative.
+		if (lookingVector.getX() == 0 && lookingVector.getY() == 0 && lookingVector.getZ() != 0) {
 			rotAxis = new Point3D(0, 1, 0);
-		} else if (lookingVector.getZ() < 0) {
-			// Rotating camera around itself, as move to other side is going to flip it
-			
-		}
-		System.out.println("angle: " + angle);
+		} 
 		Rotate rotate = new Rotate(angle, rotAxis);
-		Translate moveToCameraLocation = new Translate(cameraLocationX, cameraLocationY, cameraLocationZ);
-		camera.getTransforms().add(moveToCameraLocation);
-		/*
-			// flipping camera around Y axis so it looks at the correct place
-			Point3D yAxis = new Point3D(0, 1, 0);
-			Rotate fixRot = new Rotate(180, yAxis);
-			camera.getTransforms().add(fixRot);
-		}*/
-		
-		if (lookingVector.getZ() < 0 && (lookingVector.getX() != 0 || lookingVector.getY() != 0)) {
-			Point3D selfFlipAxis = lookingVector;
-			Rotate selfFlipFix = new Rotate(180, selfFlipAxis);
-			camera.getTransforms().add(selfFlipFix);
-		}
 		camera.getTransforms().add(rotate);
-		//camera.getTransforms().addAll(moveToCameraLocation, rotate);
-		/*if (lookingVector.getZ() < 0) {
-			Point3D aroundSelfRotationAxis = lookingVector.crossProduct(new Point3D(1, 0, 0));
-			Rotate fixView = new Rotate(180, aroundSelfRotationAxis);
-			camera.getTransforms().add(fixView);
-		}*/
-		
-		
+		if (lookingVector.getZ() < 0) {
+			Point3D axis = new Point3D(0, 1, 0);
+			Rotate cameraToOppositeDirection = new Rotate(180, axis);
+			camera.getTransforms().add(cameraToOppositeDirection);
+		}
 		//*** Uncomment it to debug watching engine ***		
 		paintWatchingLine();
 	}
 	
-	private void setupCameraOld2() {
-		// TODO Auto-generated method stub
-	//	if (camera == null) {
-		camera = new PerspectiveCamera(true);
-		graphicsContainer.getChildren().add(camera);
-		subscene.setCamera(camera);
-	//	}
-		camera.getTransforms().clear();
-		Point3D cameraDest = new Point3D(cameraDestinationX, cameraDestinationY, cameraDestinationZ);
-		Point3D cameraOrig = new Point3D(cameraLocationX, cameraLocationY, cameraLocationZ);
-		Point3D lookingVector = cameraDest.subtract(cameraOrig);
-		Point3D lookingVectorProjOnXZ = new Point3D(lookingVector.getX(), 0, lookingVector.getZ());
-		Point3D zAxis = new Point3D(0, 0, 1);
-		// The denominator is 1 as first vector is normalized and Z axis is already a unit vector
-		double angleWithZAxis = Math.acos(lookingVectorProjOnXZ.normalize().dotProduct(zAxis));
-		if (cameraDestinationX - cameraLocationX > 0) {
-			// We're on the other side of the Z axis. Need to rotate in opposite direction
-			angleWithZAxis *= (-1);
-		}
-		System.out.println("angle with z: " + angleWithZAxis);
-		Rotate rotationAroundY = new Rotate(-Math.toDegrees(angleWithZAxis), new Point3D(0, 1, 0));
-		double angleBetweenLookingVecAndItsProjectionOnXZ = Math.acos(lookingVector.normalize().dotProduct(lookingVectorProjOnXZ.normalize()));
-		if (cameraDestinationZ - cameraLocationZ < 0) {
-			angleBetweenLookingVecAndItsProjectionOnXZ *= (-1);
-		}
-		System.out.println("looking vector: " + lookingVector);
-		System.out.println("looking vector projected: " + lookingVectorProjOnXZ);
-		System.out.println("angle with XZ: " + angleBetweenLookingVecAndItsProjectionOnXZ);
-		Point3D rotationAxis = lookingVectorProjOnXZ.crossProduct(lookingVector);
-		Rotate rotationForAngleWithProjectionOnXZ = new Rotate(Math.toDegrees(angleBetweenLookingVecAndItsProjectionOnXZ), rotationAxis);
-		
-		Translate moveToCameraLocation = new Translate(cameraLocationX, cameraLocationY, cameraLocationZ);
-		
-		camera.getTransforms().addAll(moveToCameraLocation, rotationAroundY, rotationForAngleWithProjectionOnXZ);
-		
-		
-		// *** Uncomment it to debug watching engine ***		
-		paintWatchingLine();
-	}
+	
 	
 	private void paintWatchingLine() {
 		Point3D cameraDest = new Point3D(cameraDestinationX, cameraDestinationY, cameraDestinationZ);
@@ -263,7 +229,7 @@ public class Player3DRenderer extends HBox {
 		}
 		for (int i = 0 ; i < 10 ; i++) {
 			Point3D sphereLocation = cameraOrig.add(lookingUnitVector.multiply(1 + i));
-			System.out.println("sphere location: " + sphereLocation);
+			//System.out.println("sphere location: " + sphereLocation);
 			if (watchingLineSpheres[i] == null) {
 				watchingLineSpheres[i] = new Sphere(0.01);
 				PhongMaterial material = new PhongMaterial();
@@ -276,65 +242,6 @@ public class Player3DRenderer extends HBox {
 			watchingLineSpheres[i].setTranslateY(sphereLocation.getY());
 			watchingLineSpheres[i].setTranslateZ(sphereLocation.getZ());
 		}
-	}
-
-	private void setupCameraOld() {
-		// TODO Auto-generated method stub
-	//	if (camera == null) {
-			camera = new PerspectiveCamera(true);
-			graphicsContainer.getChildren().add(camera);
-			subscene.setCamera(camera);
-	//	}
-		camera.getTransforms().clear();
-		
-		Point3D zAxis = new Point3D(0, 0, 1);
-		Point3D cameraDest = new Point3D(cameraDestinationX, cameraDestinationY, cameraDestinationZ);
-		Point3D cameraOrig = new Point3D(cameraLocationX, cameraLocationY, cameraLocationZ);
-	    Point3D diff = cameraDest.subtract(cameraOrig);
-	    System.out.println("kuku: " + diff);
-	    Point3D axisOfRotation = diff.crossProduct(zAxis);
-	    double angle = Math.acos(diff.normalize().dotProduct(zAxis));
-	    System.out.println("rot axis: " + axisOfRotation);
-	    System.out.println("angle: " + angle);
-	    
-	    
-	    Rotate rotateAroundCenter = new Rotate(-Math.toDegrees(angle), axisOfRotation);
-	    Translate moveCameraToDesiredLocation = new Translate(cameraLocationX, cameraLocationY, cameraLocationZ);
-	    camera.getTransforms().add(rotateAroundCenter);
-	    camera.getTransforms().add(moveCameraToDesiredLocation);
-	    if (cameraLocationZ > cameraDestinationZ) {
-	    	Point3D yAxis = new Point3D(0, 1, 0);
-	    	Rotate rotateCamera180 = new Rotate(180, yAxis);
-	    	camera.getTransforms().add(rotateCamera180);
-	    }
-	    //camera.getTransforms().addAll(moveCameraToDesiredLocation, rotateAroundCenter);
-	    //camera.setTranslateX(cameraLocationX);
-	    //camera.setTranslateY(cameraLocationY);
-	    //camera.setTranslateZ(cameraLocationZ);
-	    //camera.setNearClip(0.1);
-		//camera.setFarClip(2000.0);
-		//camera.setFieldOfView(135);
-		
-		
-	
-		/*
-		//camera.setTranslateZ(-200);
-		//camera.setTranslateY(-250);
-		//camera.setTranslateX(450);
-		camera.getTransforms().addAll(new Rotate(cameraRotateZ, Rotate.Z_AXIS),
-									new Rotate(cameraRotateX, Rotate.X_AXIS),
-									new Rotate(cameraRotateY, Rotate.Y_AXIS));
-		Translate moveToCameraLocation = new Translate(cameraTranslateX, -1 * cameraTranslateY, cameraTranslateZ);
-		//camera.setTranslateZ(cameraTranslateZ);
-		//camera.setTranslateY(-1 * cameraTranslateY);
-		//camera.setTranslateX(cameraTranslateX);
-		camera.getTransforms().clear();
-		camera.getTransforms().addAll(moveToCameraLocation, new Rotate(cameraRotateY, Rotate.Y_AXIS));
-		camera.setNearClip(0.1);
-		camera.setFarClip(2000.0);
-		camera.setFieldOfView(135);
-		
-	*/	
 	}
 	
 	public void changeCameraLocation(double x, double y, double z) {
@@ -459,6 +366,11 @@ public class Player3DRenderer extends HBox {
 		cameraDestinationY = -y;
 		cameraDestinationZ = z;
 		setupCamera();		
+	}
+	
+	public void changeCameraSceneRotation(double angle) {
+		this.cameraSceneRotation = angle;
+		setupCamera();
 	}
 	/*
 	private double convertTo360Degrees(double angle) {

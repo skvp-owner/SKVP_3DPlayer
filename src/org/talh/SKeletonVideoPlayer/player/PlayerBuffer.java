@@ -82,8 +82,6 @@ public class PlayerBuffer {
 			bufferAccess.release();
 		}
 		
-		
-		System.out.println(this.buffer.size());
 		// It returns null when the queue is empty, which is exactly what we want to happen
 		// The queue can be empty only when there is no anymore data to read
 		return this.buffer.poll();

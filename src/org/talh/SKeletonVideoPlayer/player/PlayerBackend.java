@@ -23,6 +23,7 @@ public class PlayerBackend {
 	private PlayerState playerState = PlayerState.STOPPED;
 	Coordinate3D cameraLocation;
 	Coordinate3D cameraDestination;
+	double cameraSceneRotation;
 		
 	
 	public void clear() {
@@ -40,6 +41,7 @@ public class PlayerBackend {
 			fps = reader.getFps();
 			cameraLocation = reader.getCameraLocation();
 			cameraDestination = reader.getCameraDestination();
+			cameraSceneRotation = reader.getCameraSceneRotation();
 		} catch (SKVPNonInitializedReaderException e) {
 			// Don't care - it is initialized (see c'tor)
 			e.printStackTrace();

@@ -57,6 +57,7 @@ public class AppMainContainer extends Application {
 	private Spinner<Double> spinnerCameraDestinationX;
 	private Spinner<Double> spinnerCameraDestinationY;
 	private Spinner<Double> spinnerCameraDestinationZ;
+	private Spinner<Double> spinnerCameraSceneRotation;
 	
 	@Override
 	public void start(Stage stage) throws Exception {
@@ -104,6 +105,8 @@ public class AppMainContainer extends Application {
 	//	angleControls.getChildren().addAll(new Label("Angle X:"), spinnerCameraAngleX,
 		//									new Label("Angle Y:"), spinnerCameraAngleY,
 			//								new Label("Angle Z:"), spinnerCameraAngleZ);
+		spinnerCameraSceneRotation = new Spinner<Double>(-999999999.0, 999999999.0, 0);
+		
 		
 		cameraControls.add(new Label("Location X:"), 1, 1);
 		cameraControls.add(spinnerCameraX, 2, 1);
@@ -119,6 +122,8 @@ public class AppMainContainer extends Application {
 		cameraControls.add(spinnerCameraDestinationY, 5, 2);
 		cameraControls.add(new Label("Destination Z:"), 7, 2);
 		cameraControls.add(spinnerCameraDestinationZ, 8, 2);
+		cameraControls.add(new Label("Scene Rotation:"), 1, 3);
+		cameraControls.add(spinnerCameraSceneRotation, 2, 3);
 		
 		
 		
@@ -130,7 +135,7 @@ public class AppMainContainer extends Application {
 	}
 
 	private void createGraphicsPane() {
-		playerRenderer = new Player3DRenderer(stage, 0, 0, -5.0, 0, 0, 0);
+		playerRenderer = new Player3DRenderer(stage, 0, 0, -5.0, 0, 0, 0, 0);
 		//playerRenderer.prefHeightProperty().bind(stage.heightProperty());
 		root.getChildren().add(playerRenderer);
 	}
@@ -193,6 +198,14 @@ public class AppMainContainer extends Application {
 		spinnerCameraDestinationX.valueProperty().addListener(cameraDestinationSpinnersChangeListener);
 		spinnerCameraDestinationY.valueProperty().addListener(cameraDestinationSpinnersChangeListener);
 		spinnerCameraDestinationZ.valueProperty().addListener(cameraDestinationSpinnersChangeListener);
+	
+		ChangeListener<Double> cameraSceneRotationSpinnerChangeListener = new ChangeListener<Double>() {
+			@Override
+			public void changed(ObservableValue<? extends Double> observable, Double oldValue, Double newValue) {
+				playerRenderer.changeCameraSceneRotation(spinnerCameraSceneRotation.getValue());	
+			}			
+		};
+		spinnerCameraSceneRotation.valueProperty().addListener(cameraSceneRotationSpinnerChangeListener);
 	}
 
 	private void chooseAndOpenVideoFile() {
