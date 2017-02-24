@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import org.talh.SKeletonVideoPlayer.SKVPIllegalValueException;
 import org.talh.SKeletonVideoPlayer.SKVPSyntaxErrorException;
+import org.talh.SKeletonVideoPlayer.gui.VideoPlayerButtonsInterface.ButtonType;
 import org.talh.SKeletonVideoPlayer.player.Player3DRenderer;
 import org.talh.SKeletonVideoPlayer.player.PlayerBackend;
 
@@ -15,15 +16,12 @@ import javafx.event.ActionEvent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Spinner;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -42,9 +40,9 @@ public class AppMainContainer extends Application {
 	private MenuItem menuItemAbout;
 	private Stage stage;
 	private File lastVisitedDir = new File(System.getProperty("user.home"));
-	private Button buttonStop;
-	private Button buttonPause;
-	private Button buttonPlay;
+	//private Button buttonStop;
+	//private Button buttonPause;
+	//private Button buttonPlay;
 	private Player3DRenderer playerRenderer;
 	private Scene scene;
 	private File playedFile;
@@ -58,6 +56,8 @@ public class AppMainContainer extends Application {
 	private Spinner<Double> spinnerCameraDestinationY;
 	private Spinner<Double> spinnerCameraDestinationZ;
 	private Spinner<Double> spinnerCameraSceneRotation;
+
+	private PlayerBasicButtonsPanel basicButtons;
 	
 	@Override
 	public void start(Stage stage) throws Exception {
@@ -141,20 +141,8 @@ public class AppMainContainer extends Application {
 	}
 
 	private void createVideoPlayBasicControlsPane() {
-		HBox panel = new HBox(8);
-		Image imageBtnStop = new Image(getClass().getResourceAsStream("resources/icons/stop_button.png"));
-		Image imageBtnPause = new Image(getClass().getResourceAsStream("resources/icons/pause_button.png"));
-		Image imageBtnPlay = new Image(getClass().getResourceAsStream("resources/icons/play_button.png"));
-		buttonStop = new Button();
-		buttonStop.setGraphic(new ImageView(imageBtnStop));
-		buttonPause = new Button();
-		buttonPause.setGraphic(new ImageView(imageBtnPause));
-		buttonPlay = new Button();
-		buttonPlay.setGraphic(new ImageView(imageBtnPlay));
-		panel.getChildren().add(buttonStop);
-		panel.getChildren().add(buttonPause);
-		panel.getChildren().add(buttonPlay);
-		controlsPane.getChildren().add(panel);
+		basicButtons = new PlayerBasicButtonsPanel();
+		controlsPane.getChildren().add(basicButtons);
 	}
 
 	private void setupEvents() {
@@ -164,15 +152,25 @@ public class AppMainContainer extends Application {
 		menuItemOpen.setOnAction((ActionEvent event) -> {
 			chooseAndOpenVideoFile();
 		});
-		buttonPlay.setOnAction((ActionEvent event) -> {
-			playerBackend.play(null);
-		});
-		buttonStop.setOnAction((ActionEvent event) -> {
-			playerBackend.stop();
-			loadFile(playedFile);
-		});
-		buttonPause.setOnAction((ActionEvent event) -> {
-			playerBackend.pause();
+		basicButtons.addVideoPlayerButtonsListener(new VideoPlayerButtonsListener() {
+			
+			@Override
+			public void buttonSelected(ButtonType buttonType) {
+				switch (buttonType) {
+					case PAUSE:
+						pauseLoadedVideoAndUpdateControllers();
+						
+						break;
+					case PLAY:
+						playLoadedVideoAndUpdateControllers();
+						break;
+					case STOP:
+						stopLoadedVideoAndUpdateControllers();						
+						break;
+					default:
+						break;
+				}				
+			}
 		});
 		ChangeListener<Double> cameraSpinnersChangeListener = new ChangeListener<Double>() {
 			@Override
@@ -220,7 +218,32 @@ public class AppMainContainer extends Application {
 		}
 		lastVisitedDir  = playedFile.getParentFile();
 		loadFile(playedFile);
+		playLoadedVideoAndUpdateControllers();
+	}
+	
+	private void playLoadedVideoAndUpdateControllers() {
 		playerBackend.play(null);
+		ButtonType[] buttonsToEnable = {ButtonType.PAUSE, ButtonType.STOP};
+		ButtonType[] buttonsToDisable = {ButtonType.PLAY};
+		basicButtons.setButtonsEnabled(buttonsToEnable, true);
+		basicButtons.setButtonsEnabled(buttonsToDisable, false);
+	}
+	
+	private void pauseLoadedVideoAndUpdateControllers() {
+		playerBackend.pause();
+		ButtonType[] buttonsToEnable = {ButtonType.PLAY, ButtonType.STOP};
+		ButtonType[] buttonsToDisable = {ButtonType.PAUSE};
+		basicButtons.setButtonsEnabled(buttonsToEnable, true);
+		basicButtons.setButtonsEnabled(buttonsToDisable, false);
+	}
+	
+	private void stopLoadedVideoAndUpdateControllers() {
+		playerBackend.stop();
+		loadFile(playedFile);
+		ButtonType[] buttonsToEnable = {ButtonType.PLAY};
+		ButtonType[] buttonsToDisable = {ButtonType.STOP, ButtonType.PAUSE};
+		basicButtons.setButtonsEnabled(buttonsToEnable, true);
+		basicButtons.setButtonsEnabled(buttonsToDisable, false);
 	}
 	
 	private void loadFile(File file) {
