@@ -10,9 +10,11 @@ import org.talh.SKeletonVideoPlayer.SKVPNonInitializedReaderException;
 import org.talh.SKeletonVideoPlayer.SKVPReader;
 import org.talh.SKeletonVideoPlayer.SKVPSyntaxErrorException;
 import org.talh.SKeletonVideoPlayer.graph.Rendered3DGraph;
+import org.talh.SKeletonVideoPlayer.gui.VideoPlayerCameraControlInterface;
+import org.talh.SKeletonVideoPlayer.gui.VideoPlayerCameraControlInterface.ControlType;
 
 import javafx.application.Platform;
-import javafx.scene.control.Spinner;
+
 
 public class PlayerBackend {
 	
@@ -34,7 +36,7 @@ public class PlayerBackend {
 		playerBuffer = null;
 	}
 	
-	public void loadFile(File file, Spinner<Double> spinnerCameraX, Spinner<Double> spinnerCameraY, Spinner<Double> spinnerCameraZ, Spinner<Double> spinnerCameraDestinationX, Spinner<Double> spinnerCameraDestinationY, Spinner<Double> spinnerCameraDestinationZ) throws SKVPSyntaxErrorException, IOException, SKVPIllegalValueException {
+	public void loadFile(File file, VideoPlayerCameraControlInterface cameraControls) throws SKVPSyntaxErrorException, IOException, SKVPIllegalValueException {
 		clear();
 		SKVPReader reader = new SKVPReader(file);
 		try {
@@ -46,12 +48,12 @@ public class PlayerBackend {
 			// Don't care - it is initialized (see c'tor)
 			e.printStackTrace();
 		}
-		spinnerCameraX.getValueFactory().setValue(cameraLocation.getX());
-		spinnerCameraY.getValueFactory().setValue(cameraLocation.getY());
-		spinnerCameraZ.getValueFactory().setValue(cameraLocation.getZ());
-		spinnerCameraDestinationX.getValueFactory().setValue(cameraDestination.getX());
-		spinnerCameraDestinationY.getValueFactory().setValue(cameraDestination.getY());
-		spinnerCameraDestinationZ.getValueFactory().setValue(cameraDestination.getZ());
+		cameraControls.setControllerValue(ControlType.LOCATION_X, cameraLocation.getX());
+		cameraControls.setControllerValue(ControlType.LOCATION_Y, cameraLocation.getY());
+		cameraControls.setControllerValue(ControlType.LOCATION_Z, cameraLocation.getZ());
+		cameraControls.setControllerValue(ControlType.DESTINATION_X, cameraDestination.getX());
+		cameraControls.setControllerValue(ControlType.DESTINATION_Y, cameraDestination.getY());
+		cameraControls.setControllerValue(ControlType.DESTINATION_Z, cameraDestination.getZ());
 		playerBuffer = new PlayerBuffer(reader);		
 	}
 	

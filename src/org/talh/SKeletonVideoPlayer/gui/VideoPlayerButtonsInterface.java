@@ -19,4 +19,6 @@ public interface VideoPlayerButtonsInterface {
 	public void setAllButtonsSelected(boolean ans);
 	public void setButtonSelected(ButtonType buttonType, boolean ans);
 	public void setButtonsSelected(ButtonType[] buttonTypes, boolean ans);
+	public void addVideoPlayerButtonsListener(VideoPlayerButtonsListener listener);
+	public void removeVideoPlayerButtonsListener(VideoPlayerButtonsListener listener);
 }

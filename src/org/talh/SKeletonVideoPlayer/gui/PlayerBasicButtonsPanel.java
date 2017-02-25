@@ -69,15 +69,16 @@ public class PlayerBasicButtonsPanel extends HBox implements VideoPlayerButtonsI
 
 	@Override
 	public void setButtonEnabled(ButtonType buttonType, boolean ans) {
+		boolean disable = !ans;
 		switch (buttonType) {
 			case PAUSE:
-				buttonPause.setDisable(! ans);
+				buttonPause.setDisable(disable);
 				break;
 			case PLAY:
-				buttonPlay.setDisable(! ans);
+				buttonPlay.setDisable(disable);
 				break;
 			case STOP:
-				buttonStop.setDisable(! ans);
+				buttonStop.setDisable(disable);
 				break;
 			default:
 				break;		
@@ -111,10 +112,12 @@ public class PlayerBasicButtonsPanel extends HBox implements VideoPlayerButtonsI
 		}
 	}
 	
+	@Override
 	public void addVideoPlayerButtonsListener(VideoPlayerButtonsListener listener) {
 		listeners.add(listener);
 	}
 	
+	@Override
 	public void removeVideoPlayerButtonsListener(VideoPlayerButtonsListener listener) {
 		listeners.remove(listener);
 	}
