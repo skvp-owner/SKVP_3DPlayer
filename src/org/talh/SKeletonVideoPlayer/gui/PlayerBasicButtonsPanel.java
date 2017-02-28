@@ -15,6 +15,7 @@ public class PlayerBasicButtonsPanel extends HBox implements VideoPlayerButtonsI
 	private Button buttonStop;
 	private Button buttonPause;
 	private Button buttonPlay;
+	private Button buttonOpen;
 	private HashSet<VideoPlayerButtonsListener> listeners = new HashSet<VideoPlayerButtonsListener>(); 
 
 	public PlayerBasicButtonsPanel() {
@@ -22,15 +23,19 @@ public class PlayerBasicButtonsPanel extends HBox implements VideoPlayerButtonsI
 		Image imageBtnStop = new Image(getClass().getResourceAsStream("resources/icons/stop_button.png"));
 		Image imageBtnPause = new Image(getClass().getResourceAsStream("resources/icons/pause_button.png"));
 		Image imageBtnPlay = new Image(getClass().getResourceAsStream("resources/icons/play_button.png"));
+		Image imageBtnOpen = new Image(getClass().getResourceAsStream("resources/icons/open_button.png"));
 		buttonStop = new Button();
 		buttonStop.setGraphic(new ImageView(imageBtnStop));
 		buttonPause = new Button();
 		buttonPause.setGraphic(new ImageView(imageBtnPause));
 		buttonPlay = new Button();
 		buttonPlay.setGraphic(new ImageView(imageBtnPlay));
+		buttonOpen = new Button();
+		buttonOpen.setGraphic(new ImageView(imageBtnOpen));
 		this.getChildren().add(buttonPlay);
 		this.getChildren().add(buttonPause);
 		this.getChildren().add(buttonStop);
+		this.getChildren().add(buttonOpen);
 		setAllButtonsSelected(false);
 		setAllButtonsEnabled(false);
 		setupEvents();
@@ -57,6 +62,9 @@ public class PlayerBasicButtonsPanel extends HBox implements VideoPlayerButtonsI
 		buttonStop.setOnAction((ActionEvent event) -> {
 			notifyAllListenersOnSelectionEvent(ButtonType.STOP);
 		});
+		buttonOpen.setOnAction((ActionEvent event) -> {
+			notifyAllListenersOnSelectionEvent(ButtonType.OPEN);
+		});
 		
 	}
 
@@ -79,6 +87,9 @@ public class PlayerBasicButtonsPanel extends HBox implements VideoPlayerButtonsI
 				break;
 			case STOP:
 				buttonStop.setDisable(disable);
+				break;
+			case OPEN:
+				buttonOpen.setDisable(disable);
 				break;
 			default:
 				break;		

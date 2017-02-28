@@ -105,6 +105,7 @@ public class AppMainContainer extends Application {
 
 	private void createVideoPlayBasicControlsPane() {
 		basicButtons = new PlayerBasicButtonsPanel();
+		basicButtons.setButtonEnabled(ButtonType.OPEN, true);
 		buttonsAndTimelinePane.getChildren().add((Node)basicButtons);
 	}
 
@@ -127,6 +128,14 @@ public class AppMainContainer extends Application {
 						break;
 					case STOP:
 						stopLoadedVideoAndUpdateControllers();						
+						break;
+					case OPEN:
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								chooseAndOpenVideoFile();
+							}
+						});						
 						break;
 					default:
 						break;
