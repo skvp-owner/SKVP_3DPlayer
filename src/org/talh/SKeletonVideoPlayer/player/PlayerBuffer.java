@@ -22,7 +22,7 @@ public class PlayerBuffer {
 	private boolean dismissed = false;
 	//private SKVPReader reader;
 	
-	public PlayerBuffer(SKVPReader reader) {
+	public PlayerBuffer(SKVPReader reader, Long skipSize) {
 		this.buffer = new ConcurrentLinkedQueue<Rendered3DGraph>();
 		//this.reader = reader;
 		//this.endOfData = false;
@@ -30,6 +30,21 @@ public class PlayerBuffer {
 		this.bufferAccess = new Semaphore(1, true);
 		this.firstBufferFilling = new Semaphore(1, true);
 		this.bufferingStarted = false;
+		skipSize = (skipSize == null) ? 0 : skipSize;
+		if (skipSize > 0) {
+			try {
+				reader.getNextFrames(skipSize.intValue());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SKVPNonInitializedReaderException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SKVPSyntaxErrorException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 		this.bufferFiller = new Thread() {
 			public void run() {

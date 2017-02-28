@@ -12,6 +12,7 @@ import org.talh.SKeletonVideoPlayer.SKVPSyntaxErrorException;
 import org.talh.SKeletonVideoPlayer.graph.Rendered3DGraph;
 import org.talh.SKeletonVideoPlayer.gui.VideoPlayerCameraControlInterface;
 import org.talh.SKeletonVideoPlayer.gui.VideoPlayerCameraControlInterface.ControlType;
+import org.talh.SKeletonVideoPlayer.gui.VideoPlayerTimelineInterface;
 
 import javafx.application.Platform;
 
@@ -21,11 +22,14 @@ public class PlayerBackend {
 	private PlayerBuffer playerBuffer = null;
 	private Player3DRenderer renderer;
 	private double fps;
+	private Long numTotalVideoFrames = null;
+	private long currFrame = 0;
 	private Semaphore playSemaphore = new Semaphore(1, true);
 	private PlayerState playerState = PlayerState.STOPPED;
 	Coordinate3D cameraLocation;
 	Coordinate3D cameraDestination;
 	double cameraSceneRotation;
+	private VideoPlayerTimelineInterface timelinePane;
 		
 	
 	public void clear() {
@@ -36,11 +40,20 @@ public class PlayerBackend {
 		playerBuffer = null;
 	}
 	
-	public void loadFile(File file, VideoPlayerCameraControlInterface cameraControls) throws SKVPSyntaxErrorException, IOException, SKVPIllegalValueException {
+	public void loadFile(File file, VideoPlayerCameraControlInterface cameraControls, VideoPlayerTimelineInterface timelinePane, Long skipFrames) throws SKVPSyntaxErrorException, IOException, SKVPIllegalValueException {
 		clear();
 		SKVPReader reader = new SKVPReader(file);
 		try {
+			currFrame = (skipFrames == null) ? 0 : skipFrames;
 			fps = reader.getFps();
+			numTotalVideoFrames = reader.getNumFrames();
+			if (numTotalVideoFrames == -1) {
+				numTotalVideoFrames = null;
+			}
+			this.timelinePane = timelinePane;
+			timelinePane.setCurrentFrame(currFrame);
+			timelinePane.setFps(fps);
+			timelinePane.setVideoLengthInFrames(numTotalVideoFrames);
 			cameraLocation = reader.getCameraLocation();
 			cameraDestination = reader.getCameraDestination();
 			cameraSceneRotation = reader.getCameraSceneRotation();
@@ -54,7 +67,7 @@ public class PlayerBackend {
 		cameraControls.setControllerValue(ControlType.DESTINATION_X, cameraDestination.getX());
 		cameraControls.setControllerValue(ControlType.DESTINATION_Y, cameraDestination.getY());
 		cameraControls.setControllerValue(ControlType.DESTINATION_Z, cameraDestination.getZ());
-		playerBuffer = new PlayerBuffer(reader);		
+		playerBuffer = new PlayerBuffer(reader, skipFrames);		
 	}
 	
 	public void setPlayerRenderer(Player3DRenderer renderer) {
@@ -75,7 +88,7 @@ public class PlayerBackend {
 				return;
 		}
 		//fps = 1.0;
-		final double fpsVal = (fps == null) ? this.fps : fps.doubleValue(); 
+		final double fpsVal = (fps == null) ? this.fps : fps.doubleValue();
 		Thread playThread = new Thread() {
 			public void run() {
 				Rendered3DGraph graph = null;
@@ -87,6 +100,8 @@ public class PlayerBackend {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
+					currFrame += 1;
+					timelinePane.setCurrentFrame(currFrame);
 					Platform.runLater(new RendererThread(renderer, graph));
 					//final Rendered3DGraph finalGraph = graph;
 					/*Platform.runLater(new Runnable() {
@@ -136,7 +151,14 @@ public class PlayerBackend {
 		if (playerState == PlayerState.STOPPED) {
 			return;
 		}
+		if (playerState == PlayerState.PAUSED) {
+			playSemaphore.release();
+		}
 		playerState = PlayerState.STOPPED;
+		playerBuffer.dismissBuffer();
+		playerBuffer = null;
+		currFrame = 0;
+		timelinePane.setCurrentFrame(currFrame);
 	}
 	
 }

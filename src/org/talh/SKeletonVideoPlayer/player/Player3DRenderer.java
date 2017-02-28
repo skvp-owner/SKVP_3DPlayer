@@ -62,7 +62,7 @@ public class Player3DRenderer extends HBox {
                 "-fx-border-radius: 5;" + 
                 "-fx-border-color: blue;");
 		graphicsContainer = new Group();
-		subscene = new SubScene(graphicsContainer, 500, 500, true, SceneAntialiasing.BALANCED);
+		subscene = new SubScene(graphicsContainer, 500, 350, true, SceneAntialiasing.BALANCED);
 		//subscene.setRoot(graphicsContainer);
 		this.prefWidthProperty().bind(stage.widthProperty());
 		this.prefHeightProperty().bind(stage.heightProperty());

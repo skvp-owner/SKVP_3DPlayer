@@ -7,26 +7,24 @@ import org.talh.SKeletonVideoPlayer.SKVPIllegalValueException;
 import org.talh.SKeletonVideoPlayer.SKVPSyntaxErrorException;
 import org.talh.SKeletonVideoPlayer.gui.VideoPlayerButtonsInterface.ButtonType;
 import org.talh.SKeletonVideoPlayer.gui.VideoPlayerCameraControlInterface.ControlType;
+import org.talh.SKeletonVideoPlayer.player.Defs;
 import org.talh.SKeletonVideoPlayer.player.Player3DRenderer;
 import org.talh.SKeletonVideoPlayer.player.PlayerBackend;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
-import javafx.scene.control.Spinner;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
@@ -50,10 +48,14 @@ public class AppMainContainer extends Application {
 	private Scene scene;
 	private File playedFile;
 
-	private HBox controlsPane;
+	private VBox controlsPane;
 
 	private VideoPlayerButtonsInterface basicButtons;
 	private VideoPlayerCameraControlInterface cameraControls;
+
+	private VideoPlayerTimelineInterface timelinePane;
+
+	private HBox buttonsAndTimelinePane;
 	
 	@Override
 	public void start(Stage stage) throws Exception {
@@ -68,67 +70,31 @@ public class AppMainContainer extends Application {
 		createMainWindow();
 		createMenus();
 		createGraphicsPane();
-		controlsPane = new HBox(8); 
+		controlsPane = new VBox(Defs.BUTTONS_PANEL_BETWEEN_SPACING);
+		controlsPane.setPadding(new Insets(Defs.BUTTONS_PANEL_BETWEEN_SPACING));
 		root.getChildren().add(controlsPane);
+		buttonsAndTimelinePane = new HBox(Defs.BUTTONS_PANEL_BETWEEN_SPACING);
+		controlsPane.getChildren().add(buttonsAndTimelinePane);
 		createVideoPlayBasicControlsPane();
 		createCameraControlsPane();
+		createTimelinePane();
 		setupEvents();
+		stage.sizeToScene();
 		stage.show();
+	}
+
+	private void createTimelinePane() {
+		timelinePane = new VideoPlayerTimelinePanel();
+		buttonsAndTimelinePane.getChildren().add((Node)timelinePane);
+		HBox.setHgrow((Node)timelinePane, Priority.ALWAYS);		
 	}
 
 	private void createCameraControlsPane() {
 		cameraControls = new VideoPlayerCameraControlPanel();
-		//VBox cameraControls = new VBox(8);
-		//HBox locationControls = new HBox(8);
-		//HBox angleControls = new HBox(8);
-		//cameraControls.getChildren().addAll(locationControls, angleControls);
-		//GridPane cameraControls = new GridPane();
-		//spinnerCameraX = new Spinner<Double>(-999999999.0, 999999999.0, 0.0);
-		//spinnerCameraY = new Spinner<Double>(-999999999.0, 999999999.0, 0.0);
-		//spinnerCameraZ = new Spinner<Double>(-999999999.0, 999999999.0, 0.0);
-	//	spinnerCameraX.setEditable(true);
-	//	spinnerCameraY.setEditable(true);
-	//	spinnerCameraZ.setEditable(true);
-		//locationControls.getChildren().addAll(new Label("X:"), spinnerCameraX,
-			//								new Label("Y:"), spinnerCameraY,
-			//								new Label("Z:"), spinnerCameraZ);
-		
-		//spinnerCameraDestinationX = new Spinner<Double>(-999999999.0, 999999999.0, 0);  //(-180.0, 180.0, 0.0, 5.0);
-		//spinnerCameraDestinationY = new Spinner<Double>(-999999999.0, 999999999.0, 0);
-		//spinnerCameraDestinationZ = new Spinner<Double>(-999999999.0, 999999999.0, 0);
-	//	spinnerCameraAngleX.setEditable(true);
-	//	spinnerCameraAngleY.setEditable(true);
-	//	spinnerCameraAngleZ.setEditable(true);
-	//	angleControls.getChildren().addAll(new Label("Angle X:"), spinnerCameraAngleX,
-		//									new Label("Angle Y:"), spinnerCameraAngleY,
-			//								new Label("Angle Z:"), spinnerCameraAngleZ);
-		//spinnerCameraSceneRotation = new Spinner<Double>(-999999999.0, 999999999.0, 0);
-		
-		
-		//cameraControls.add(new Label("Location X:"), 1, 1);
-		//cameraControls.add(spinnerCameraX, 2, 1);
-		//cameraControls.add(new Label("    "), 3, 1);
-		//cameraControls.add(new Label("Location Y:"), 4, 1);
-		//cameraControls.add(spinnerCameraY, 5, 1);
-		//cameraControls.add(new Label("    "), 6, 1);
-		//cameraControls.add(new Label("Location Z:"), 7, 1);
-		//cameraControls.add(spinnerCameraZ, 8, 1);
-		//cameraControls.add(new Label("Destination X:"), 1, 2);
-		//cameraControls.add(spinnerCameraDestinationX, 2, 2);
-		//cameraControls.add(new Label("Destination Y:"), 4, 2);
-		//cameraControls.add(spinnerCameraDestinationY, 5, 2);
-		//cameraControls.add(new Label("Destination Z:"), 7, 2);
-		//cameraControls.add(spinnerCameraDestinationZ, 8, 2);
-		//cameraControls.add(new Label("Scene Rotation:"), 1, 3);
-		//cameraControls.add(spinnerCameraSceneRotation, 2, 3);
-		
 		
 		
 		controlsPane.getChildren().add((Node)cameraControls);
 		
-		//dspinner.set
-		//1.5, 3.5, 1.5, 0.5);
-
 	}
 
 	private void createGraphicsPane() {
@@ -139,7 +105,7 @@ public class AppMainContainer extends Application {
 
 	private void createVideoPlayBasicControlsPane() {
 		basicButtons = new PlayerBasicButtonsPanel();
-		controlsPane.getChildren().add((Node)basicButtons);
+		buttonsAndTimelinePane.getChildren().add((Node)basicButtons);
 	}
 
 	private void setupEvents() {
@@ -154,10 +120,10 @@ public class AppMainContainer extends Application {
 			public void buttonSelected(ButtonType buttonType) {
 				switch (buttonType) {
 					case PAUSE:
-						pauseLoadedVideoAndUpdateControllers();						
+						pauseLoadedVideoAndUpdateControllers();
 						break;
 					case PLAY:
-						playLoadedVideoAndUpdateControllers();
+						playLoadedVideoAndUpdateControllers(null);
 						break;
 					case STOP:
 						stopLoadedVideoAndUpdateControllers();						
@@ -167,6 +133,20 @@ public class AppMainContainer extends Application {
 				}				
 			}
 		});
+		
+		timelinePane.addVideoPlayerTimelineListener(new VideoPlayerTimelineListener() {
+			
+			@Override
+			public void userModificationRequest() {
+				stopLoadedVideoAndUpdateControllers();
+			}
+			
+			@Override
+			public void timeJumpRequest(long requestedFrame) {
+				playLoadedVideoAndUpdateControllers(requestedFrame);
+			}
+		});
+		
 		cameraControls.addVideoPlayerCameraControlListener(new VideoPlayerCameraControlListener() {
 			
 			private void updateCameraLocation() {
@@ -282,11 +262,14 @@ public class AppMainContainer extends Application {
 			return;
 		}
 		lastVisitedDir  = playedFile.getParentFile();
-		loadFile(playedFile);
-		playLoadedVideoAndUpdateControllers();
+		loadFile(playedFile, null);
+		playLoadedVideoAndUpdateControllers(null);
 	}
 	
-	private void playLoadedVideoAndUpdateControllers() {
+	private void playLoadedVideoAndUpdateControllers(Long startFrom) {
+		if (startFrom != null) {
+			loadFile(playedFile, startFrom);
+		}
 		playerBackend.play(null);
 		ButtonType[] buttonsToEnable = {ButtonType.PAUSE, ButtonType.STOP};
 		ButtonType[] buttonsToDisable = {ButtonType.PLAY};
@@ -304,16 +287,16 @@ public class AppMainContainer extends Application {
 	
 	private void stopLoadedVideoAndUpdateControllers() {
 		playerBackend.stop();
-		loadFile(playedFile);
+		loadFile(playedFile, null);
 		ButtonType[] buttonsToEnable = {ButtonType.PLAY};
 		ButtonType[] buttonsToDisable = {ButtonType.STOP, ButtonType.PAUSE};
 		basicButtons.setButtonsEnabled(buttonsToEnable, true);
 		basicButtons.setButtonsEnabled(buttonsToDisable, false);
 	}
 	
-	private void loadFile(File file) {
+	private void loadFile(File file, Long startFromFrame) {
 		try {
-			playerBackend.loadFile(file, cameraControls);
+			playerBackend.loadFile(file, cameraControls, timelinePane, startFromFrame);
 		} catch (SKVPSyntaxErrorException e) {
 			showErrorDialog("Error loading selected file...", "Loaded file has syntax errors", e.getMessage());
 		} catch (IOException e) {
@@ -360,7 +343,7 @@ public class AppMainContainer extends Application {
 	}
 
 	private void createMainWindow() {
-		scene = new Scene(root, 1024, 768);
+		scene = new Scene(root);//, 1024, 768);
 		scene.setFill(Color.GRAY);
 		stage.setTitle("SKVP 3D Player (SKeleton Video Player)");
 		stage.setScene(scene);		
