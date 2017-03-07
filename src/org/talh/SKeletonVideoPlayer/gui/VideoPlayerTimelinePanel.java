@@ -1,12 +1,12 @@
 package org.talh.SKeletonVideoPlayer.gui;
 
 import java.util.HashSet;
-import java.util.List;
 
 import org.talh.SKeletonVideoPlayer.player.Defs;
 
 import javafx.application.Platform;
-import javafx.event.Event;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -29,7 +29,9 @@ public class VideoPlayerTimelinePanel extends HBox implements VideoPlayerTimelin
 	private Long videoLengthInFrames = null;
 	private long currentFrame = 0;
 	private HashSet<VideoPlayerTimelineListener> listeners = new HashSet<VideoPlayerTimelineListener>();
-
+	private boolean sliderChangeEventOff = true;
+	
+	
 	public VideoPlayerTimelinePanel() {
 		super(Defs.BUTTONS_PANEL_BETWEEN_SPACING);
 		VBox currTimeBox = new VBox();
@@ -73,18 +75,14 @@ public class VideoPlayerTimelinePanel extends HBox implements VideoPlayerTimelin
 			};
 			t.start();
 		}
-	}
-	
+	}	
 	
 	private void setupEvents() {
 		slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent event) {
-				double locationProp = event.getX() / slider.getWidth();
-				if (locationProp < 0) {
-					locationProp = 0;
-				}
-				long newFrame = (long) (videoLengthInFrames * locationProp);
+				long newFrame = (long)slider.getValue();
+				sliderChangeEventOff = true;
 				updateAllListenersOnJumpRequest(newFrame);
 			}			
 		});
@@ -92,8 +90,17 @@ public class VideoPlayerTimelinePanel extends HBox implements VideoPlayerTimelin
 			@Override
 			public void handle(MouseEvent event) {
 				updateAllListenersOnUserModificationRequest();
+				sliderChangeEventOff = false;
 			}			
 		});
+		slider.valueProperty().addListener(new ChangeListener<Number>() {
+            public void changed(ObservableValue<? extends Number> ov, Number old_val, Number new_val) {
+                if (sliderChangeEventOff) {
+                	return;
+                }
+            	setCurrentFrame(new_val.longValue());
+            }
+        });
 		
 	}
 
