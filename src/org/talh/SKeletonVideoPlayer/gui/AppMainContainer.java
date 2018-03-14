@@ -91,6 +91,7 @@ public class AppMainContainer extends Application {
 
 	private void createCameraControlsPane() {
 		cameraControls = new VideoPlayerCameraControlPanel();
+		cameraControls.setAllControllersEditable(true);
 		
 		
 		controlsPane.getChildren().add((Node)cameraControls);
@@ -264,7 +265,7 @@ public class AppMainContainer extends Application {
 		FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Open SKVP 3D Video File...");
 		fileChooser.setInitialDirectory(lastVisitedDir);                 
-		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SKVP", "*.skvp"));
+		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SKVP", "*.skvp", "*.skvp.gz"));
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("All Files", "*.*"));
 		playedFile = fileChooser.showOpenDialog(stage);
 		if (playedFile == null) {
