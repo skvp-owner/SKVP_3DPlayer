@@ -30,6 +30,7 @@ public class PlayerBackend {
 	Coordinate3D cameraDestination;
 	double cameraSceneRotation;
 	private VideoPlayerTimelineInterface timelinePane;
+	private Long endFrame;
 		
 	
 	public void clear() {
@@ -40,11 +41,12 @@ public class PlayerBackend {
 		playerBuffer = null;
 	}
 	
-	public void loadFile(File file, VideoPlayerCameraControlInterface cameraControls, VideoPlayerTimelineInterface timelinePane, Long skipFrames) throws SKVPSyntaxErrorException, IOException, SKVPIllegalValueException {
+	public void loadFile(File file, VideoPlayerCameraControlInterface cameraControls, VideoPlayerTimelineInterface timelinePane, Long skipFrames, Long endFrame) throws SKVPSyntaxErrorException, IOException, SKVPIllegalValueException {
 		clear();
 		SKVPReader reader = new SKVPReader(file);
 		try {
 			currFrame = (skipFrames == null) ? 0 : skipFrames;
+			this.endFrame = endFrame;
 			fps = reader.getFps();
 			numTotalVideoFrames = reader.getNumFrames();
 			if (numTotalVideoFrames == -1) {
@@ -74,7 +76,7 @@ public class PlayerBackend {
 		this.renderer = renderer;
 	}
 	
-	public synchronized void play(Double fps) {
+	public synchronized void play() {
 		switch (playerState) {
 			case STOPPED:
 				playerState = PlayerState.PLAYING;
@@ -88,7 +90,7 @@ public class PlayerBackend {
 				return;
 		}
 		//fps = 1.0;
-		final double fpsVal = (fps == null) ? this.fps : fps.doubleValue();
+		//final double fpsVal = (fps == null) ? this.fps : fps.doubleValue();
 		Thread playThread = new Thread() {
 			public void run() {
 				Rendered3DGraph graph = null;
@@ -112,13 +114,16 @@ public class PlayerBackend {
 						
 					});*/
 					try {
-						Thread.sleep((int)(1000.0 / fpsVal));
+						Thread.sleep((int)(1000.0 / fps));
 						//System.out.println("fps is: " + fpsVal);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					playSemaphore.release();
+					if (endFrame != null && currFrame > endFrame) {
+						break;
+					}
 				}
 				playerState = PlayerState.STOPPED;
 			}
@@ -159,6 +164,11 @@ public class PlayerBackend {
 		playerBuffer = null;
 		currFrame = 0;
 		timelinePane.setCurrentFrame(currFrame);
+	}
+
+	public void setFps(double fps) {
+		this.fps = fps;
+		
 	}
 	
 }

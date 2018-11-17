@@ -9,8 +9,12 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -19,8 +23,11 @@ import javafx.scene.text.TextAlignment;
 
 public class VideoPlayerTimelinePanel extends HBox implements VideoPlayerTimelineInterface {
 
+	private AppMainContainer mainContainer;
 	private Label lblCurrentTime;
 	private Label lblCurrentFrame;
+	private TextField tfJumpToFrame;
+	private Button btnJumpToFrame;
 	private Label lblTotalTime;
 	private Label lblTotalFrames;
 	private Slider slider;
@@ -30,10 +37,18 @@ public class VideoPlayerTimelinePanel extends HBox implements VideoPlayerTimelin
 	private long currentFrame = 0;
 	private HashSet<VideoPlayerTimelineListener> listeners = new HashSet<VideoPlayerTimelineListener>();
 	private boolean sliderChangeEventOff = true;
+	private TextField tfFPS;
+	private Button btnSetFps;
+	private TextField tfStartFrame;
+	private TextField tfEndFrame;
+	private Button btnPlaySequence;
+	private Button btnCutSequence;
+	private TextField tfClipName;
 	
 	
-	public VideoPlayerTimelinePanel() {
+	public VideoPlayerTimelinePanel(AppMainContainer mainContainer) {
 		super(Defs.BUTTONS_PANEL_BETWEEN_SPACING);
+		this.mainContainer = mainContainer;
 		VBox currTimeBox = new VBox();
 		lblCurrentTime = new Label("00:00:00");
 		lblCurrentTime.setTextAlignment(TextAlignment.CENTER);
@@ -49,33 +64,89 @@ public class VideoPlayerTimelinePanel extends HBox implements VideoPlayerTimelin
 		totalTimeBox.getChildren().addAll(lblTotalTime, lblTotalFrames);
 		totalTimeBox.setAlignment(Pos.BASELINE_CENTER);
 		slider = new Slider();
-		this.getChildren().addAll(currTimeBox, slider, totalTimeBox);
+		HBox sequenceBox = new HBox();
+		VBox sequenceFieldsBox = new VBox();
+		VBox sequenceButtonsBox = new VBox();
+		sequenceBox.getChildren().addAll(sequenceFieldsBox, sequenceButtonsBox);
+		HBox sequenceStartFrameBox = new HBox();
+		HBox sequenceEndFrameBox = new HBox();
+		HBox sequenceClipNameBox = new HBox();
+		sequenceFieldsBox.getChildren().addAll(sequenceStartFrameBox, sequenceEndFrameBox, sequenceClipNameBox);
+		Label lblStartFrame = new Label("Start:");
+		tfStartFrame = new TextField("");
+		sequenceStartFrameBox.getChildren().addAll(lblStartFrame, tfStartFrame);
+		Label lblEndFrame = new Label("End:");
+		tfEndFrame = new TextField("");
+		sequenceEndFrameBox.getChildren().addAll(lblEndFrame, tfEndFrame);
+		Label lblClipName = new Label("Clip Name:");
+		tfClipName = new TextField("");
+		sequenceClipNameBox.getChildren().addAll(lblClipName, tfClipName);
+		btnPlaySequence = new Button("Play");
+		btnCutSequence = new Button("Cut");
+		sequenceButtonsBox.getChildren().addAll(btnPlaySequence, btnCutSequence);
+		/*
+		HBox jumpToFrameBox = new HBox();
+		Label lblJumpToFrame = new Label("Frame:");
+		tfJumpToFrame = new TextField("");
+		tfJumpToFrame.setPrefColumnCount(5);
+		btnJumpToFrame = new Button("Jump");
+		jumpToFrameBox.getChildren().addAll(lblJumpToFrame, tfJumpToFrame, btnJumpToFrame);
+		*/
+		HBox changeFpsBox = new HBox();
+		Label lblFps = new Label("FPS:");
+		tfFPS = new TextField("");
+		tfFPS.setPrefColumnCount(5);
+		btnSetFps = new Button("Set");
+		changeFpsBox.getChildren().addAll(lblFps, tfFPS, btnSetFps);
+		VBox jumpersBox = new VBox();
+		jumpersBox.getChildren().addAll(sequenceBox, changeFpsBox);
+		this.getChildren().addAll(currTimeBox, slider, totalTimeBox, jumpersBox);
 		HBox.setHgrow(slider, Priority.ALWAYS);
 		updateAllPossibleControllers();
 		setupEvents();
 	}
 	
-	private void updateAllListenersOnJumpRequest(long destFrame) {
+	private void updateAllListenersOnJumpRequest(long destFrame, Long endFrame) {
 		for (VideoPlayerTimelineListener listener : listeners) {
-			Thread t = new Thread() {
-				public void run() {
-					listener.timeJumpRequest(destFrame);
-				}
-			};
-			t.start();
+		//	Thread t = new Thread() {
+		//		public void run() {
+					listener.timeJumpRequest(destFrame, endFrame);
+		//		}
+		//	};
+		//	t.start();
 		}
 	}
 	
 	private void updateAllListenersOnUserModificationRequest() {
 		for (VideoPlayerTimelineListener listener : listeners) {
-			Thread t = new Thread() {
-				public void run() {
+		//	Thread t = new Thread() {
+			//	public void run() {
 					listener.userModificationRequest();
-				}
-			};
-			t.start();
+			//	}
+			//};
+			//t.start();
 		}
-	}	
+	}
+	
+	private void updateAllListenersOnFpsChangeRequest(double fps) {
+		for (VideoPlayerTimelineListener listener : listeners) {
+			//	Thread t = new Thread() {
+			//		public void run() {
+						listener.playFpsChangeRequest(fps);
+			//		}
+			//	};
+			//	t.start();
+		}
+	}
+	
+	private void showErrorDialog(String title, String errorHeader, String content) {
+		Alert alert = new Alert(AlertType.ERROR);
+		alert.setTitle(title);
+		alert.setHeaderText(errorHeader);
+		alert.setContentText(content);
+
+		alert.showAndWait();
+	}
 	
 	private void setupEvents() {
 		slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
@@ -83,7 +154,7 @@ public class VideoPlayerTimelinePanel extends HBox implements VideoPlayerTimelin
 			public void handle(MouseEvent event) {
 				long newFrame = (long)slider.getValue();
 				sliderChangeEventOff = true;
-				updateAllListenersOnJumpRequest(newFrame);
+				updateAllListenersOnJumpRequest(newFrame, null);
 			}			
 		});
 		slider.setOnMousePressed(new EventHandler<MouseEvent>() {
@@ -98,11 +169,87 @@ public class VideoPlayerTimelinePanel extends HBox implements VideoPlayerTimelin
                 if (sliderChangeEventOff) {
                 	return;
                 }
+                // The purpose of this event is reflect the slider state in the current frame label
+                //   so the user can see the index of the frame he is trying to pick 
             	setCurrentFrame(new_val.longValue());
             }
         });
+		btnPlaySequence.setOnAction(e -> {
+			long startFrameNum;
+			long endFrameNum;
+			try {
+				startFrameNum = Long.parseLong(tfStartFrame.getText());
+				endFrameNum = Long.parseLong(tfEndFrame.getText());
+			} catch (NumberFormatException e1) {
+				showErrorDialog("Input error", "", "start and end frames must be integers");
+				return;
+			}
+			
+			sliderChangeEventOff = true;
+			updateAllListenersOnUserModificationRequest();
+			//slider.setValue(frameNum);
+			updateAllListenersOnJumpRequest(startFrameNum, endFrameNum);
+			
+		});
+		btnCutSequence.setOnAction(e -> {
+			if (tfClipName.getText().equals("")) {
+				showErrorDialog("Input error", "", "clip name must be defined");
+				return;
+			}
+			long startFrameNum;
+			long endFrameNum;
+			try {
+				startFrameNum = Long.parseLong(tfStartFrame.getText());
+				endFrameNum = Long.parseLong(tfEndFrame.getText());
+			} catch (NumberFormatException e1) {
+				showErrorDialog("Input error", "", "start and end frames must be integers");
+				return;
+			}
+			String inputFilePath = mainContainer.getPlayedFile().getAbsolutePath();
+			String cmd = "python " + 
+						"C:\\projects\\thesis_algorithms\\scripts\\cut_skvp.py " +
+						inputFilePath + " " +
+						tfClipName.getText() + " " +
+						Long.toString(startFrameNum) + " " +
+						Long.toString(endFrameNum) + " " + 
+						"C:\\projects\\thesis_raw_videos_indexed\\cuts";
+			try {
+				Process p = Runtime.getRuntime().exec(cmd);
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
+		});
+		/*
+		btnJumpToFrame.setOnAction(e -> {
+			int frameNum;
+			try {
+				frameNum = Integer.parseInt(tfJumpToFrame.getText());
+			} catch (NumberFormatException e1) {
+				return;
+			}
+			
+			sliderChangeEventOff = true;
+			updateAllListenersOnUserModificationRequest();
+			//slider.setValue(frameNum);
+			updateAllListenersOnJumpRequest(frameNum);
+			
+		});*/
+		
+		btnSetFps.setOnAction(e -> {
+			double fpsVal;
+			try {
+				fpsVal = Double.parseDouble(tfFPS.getText()) ;
+			} catch (NumberFormatException e1) {
+				return;
+			}
+			updateAllListenersOnFpsChangeRequest(fpsVal);
+		});
 		
 	}
+
+	
 
 	@Override
 	public void setControllerEnabled(TimeControllerType timeControllerType, boolean ans) {

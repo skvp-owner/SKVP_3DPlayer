@@ -57,6 +57,10 @@ public class AppMainContainer extends Application {
 
 	private HBox buttonsAndTimelinePane;
 	
+	public File getPlayedFile() {
+		return playedFile;
+	}
+	
 	@Override
 	public void start(Stage stage) throws Exception {
 		this.stage = stage;
@@ -84,7 +88,7 @@ public class AppMainContainer extends Application {
 	}
 
 	private void createTimelinePane() {
-		timelinePane = new VideoPlayerTimelinePanel();
+		timelinePane = new VideoPlayerTimelinePanel(this);
 		buttonsAndTimelinePane.getChildren().add((Node)timelinePane);
 		HBox.setHgrow((Node)timelinePane, Priority.ALWAYS);		
 	}
@@ -125,7 +129,7 @@ public class AppMainContainer extends Application {
 						pauseLoadedVideoAndUpdateControllers();
 						break;
 					case PLAY:
-						playLoadedVideoAndUpdateControllers(null);
+						playLoadedVideoAndUpdateControllers(null, null);
 						break;
 					case STOP:
 						stopLoadedVideoAndUpdateControllers();						
@@ -152,8 +156,14 @@ public class AppMainContainer extends Application {
 			}
 			
 			@Override
-			public void timeJumpRequest(long requestedFrame) {
-				playLoadedVideoAndUpdateControllers(requestedFrame);
+			public void timeJumpRequest(long requestedFrame, Long endFrame) {
+				playLoadedVideoAndUpdateControllers(requestedFrame, endFrame);
+			}
+			
+			@Override
+			public void playFpsChangeRequest(double fps) {
+				playerBackend.setFps(fps);
+				
 			}
 		});
 		
@@ -272,15 +282,15 @@ public class AppMainContainer extends Application {
 			return;
 		}
 		lastVisitedDir  = playedFile.getParentFile();
-		loadFile(playedFile, null);
-		playLoadedVideoAndUpdateControllers(null);
+		loadFile(playedFile, null, null);
+		playLoadedVideoAndUpdateControllers(null, null);
 	}
 	
-	private void playLoadedVideoAndUpdateControllers(Long startFrom) {
+	private void playLoadedVideoAndUpdateControllers(Long startFrom, Long endFrame) {
 		if (startFrom != null) {
-			loadFile(playedFile, startFrom);
+			loadFile(playedFile, startFrom, endFrame);
 		}
-		playerBackend.play(null);
+		playerBackend.play();
 		ButtonType[] buttonsToEnable = {ButtonType.PAUSE, ButtonType.STOP};
 		ButtonType[] buttonsToDisable = {ButtonType.PLAY};
 		basicButtons.setButtonsEnabled(buttonsToEnable, true);
@@ -297,16 +307,16 @@ public class AppMainContainer extends Application {
 	
 	private void stopLoadedVideoAndUpdateControllers() {
 		playerBackend.stop();
-		loadFile(playedFile, null);
+		loadFile(playedFile, null, null);
 		ButtonType[] buttonsToEnable = {ButtonType.PLAY};
 		ButtonType[] buttonsToDisable = {ButtonType.STOP, ButtonType.PAUSE};
 		basicButtons.setButtonsEnabled(buttonsToEnable, true);
 		basicButtons.setButtonsEnabled(buttonsToDisable, false);
 	}
 	
-	private void loadFile(File file, Long startFromFrame) {
+	private void loadFile(File file, Long startFromFrame, Long endFrame) {
 		try {
-			playerBackend.loadFile(file, cameraControls, timelinePane, startFromFrame);
+			playerBackend.loadFile(file, cameraControls, timelinePane, startFromFrame, endFrame);
 		} catch (SKVPSyntaxErrorException e) {
 			showErrorDialog("Error loading selected file...", "Loaded file has syntax errors", e.getMessage());
 		} catch (IOException e) {
